@@ -10,6 +10,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 from tqdm import tqdm
+import h5py
 
 
 class GrazPedWriDataset(Dataset):
@@ -28,6 +29,7 @@ class GrazPedWriDataset(Dataset):
         # load data meta and other information
         self.df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
         # init ground truth parser considering the data split
+        assert fold <= self.df_meta['fold'].max(), f'max fold index is {self.df_meta["fold"].max()}'
         if mode == 'train':
             self.df_meta = self.df_meta[self.df_meta['fold'] != fold]
         elif mode == 'val':
@@ -44,12 +46,17 @@ class GrazPedWriDataset(Dataset):
 
         # load img into memory
         img_path = Path('data/img_only_front_all_left')
+        h5_saved_seg = h5py.File('data/segmentations_all.h5', 'r')['segmentation_mask']
         self.data = dict()
         for file_name in tqdm(self.available_file_names, unit='img', desc=f'Loading data for {mode}'):
             # image
             img = Image.open(img_path.joinpath(file_name).with_suffix('.png')).convert('L')
             img = img.resize(self.RESCALE_HW[::-1], Image.BILINEAR)
             img = to_tensor(img)
+
+            # segmentation
+            seg = h5_saved_seg[file_name][:]
+            seg = torch.from_numpy(seg)
 
             # classification ground truth
             class_label: str = self.df_meta.loc[file_name, 'ao_classification']
@@ -66,6 +73,7 @@ class GrazPedWriDataset(Dataset):
             self.data[file_name] = {
                 'file_name': file_name,
                 'image': img,
+                'segmentation': seg,
                 'y': y
 
             }
@@ -119,11 +127,17 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from torch.utils.data import DataLoader
 
-    dataset = GrazPedWriDataset('val', fold=0)
+    dataset = GrazPedWriDataset('val', fold=3)
     data = dataset[0]
     print(data['image'].shape)
     print(data['y'])
     plt.figure(data['file_name'])
     plt.imshow(data['image'].squeeze().numpy(), cmap='gray')
     plt.title(dataset.CLASS_LABEL[data['y'].argmax()])
+
+    plt.figure()
+    plt.imshow(data['image'].squeeze().numpy(), cmap='gray')
+    plt.imshow(data['segmentation'].float().argmax(0), alpha=data['segmentation'].any(0).float() * .8, cmap='tab20',
+               interpolation='nearest')
+
     plt.show()
