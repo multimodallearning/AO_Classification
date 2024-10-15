@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 from tqdm import tqdm
 import h5py
+from heatmap_extractor import HeatmapExtractor
 
 
 class GrazPedWriDataset(Dataset):
@@ -46,9 +47,13 @@ class GrazPedWriDataset(Dataset):
 
         # load img into memory
         img_path = Path('data/img_only_front_all_left')
+        yolo_label_path = Path('data/yolo_labels')
         h5_saved_seg = h5py.File('data/segmentations_all.h5', 'r')['segmentation_mask']
+        heatmap_extractor = HeatmapExtractor(resolution_HW=self.RESCALE_HW, class2extract=3)  # 3 = fracture
         self.data = dict()
         for file_name in tqdm(self.available_file_names, unit='img', desc=f'Loading data for {mode}'):
+            need2flip = self.df_meta.loc[file_name, 'laterality'] == 'R'
+
             # image
             img = Image.open(img_path.joinpath(file_name).with_suffix('.png')).convert('L')
             img = img.resize(self.RESCALE_HW[::-1], Image.BILINEAR)
@@ -57,6 +62,11 @@ class GrazPedWriDataset(Dataset):
             # segmentation
             seg = h5_saved_seg[file_name][:]
             seg = torch.from_numpy(seg)
+
+            # fracture heatmap
+            heatmap = heatmap_extractor.extract_heatmap(yolo_label_path.joinpath(file_name).with_suffix('.txt'))
+            if need2flip:
+                heatmap = heatmap.flip(1)
 
             # classification ground truth
             class_label: str = self.df_meta.loc[file_name, 'ao_classification']
@@ -74,6 +84,7 @@ class GrazPedWriDataset(Dataset):
                 'file_name': file_name,
                 'image': img,
                 'segmentation': seg,
+                'fracture_heatmap': heatmap,
                 'y': y
 
             }
@@ -127,17 +138,19 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from torch.utils.data import DataLoader
 
-    dataset = GrazPedWriDataset('val', fold=3)
+    dataset = GrazPedWriDataset('val', fold=1)
     data = dataset[0]
     print(data['image'].shape)
     print(data['y'])
-    plt.figure(data['file_name'])
-    plt.imshow(data['image'].squeeze().numpy(), cmap='gray')
-    plt.title(dataset.CLASS_LABEL[data['y'].argmax()])
+    fig, axs = plt.subplots(1, 3, num=data['file_name'])
+    axs[0].imshow(data['image'].squeeze().numpy(), cmap='gray')
+    axs[0].set_title(dataset.CLASS_LABEL[data['y'].argmax()])
 
-    plt.figure()
-    plt.imshow(data['image'].squeeze().numpy(), cmap='gray')
-    plt.imshow(data['segmentation'].float().argmax(0), alpha=data['segmentation'].any(0).float() * .8, cmap='tab20',
-               interpolation='nearest')
+    axs[1].imshow(data['image'].squeeze().numpy(), cmap='gray')
+    axs[1].imshow(data['segmentation'].float().argmax(0), alpha=data['segmentation'].any(0).float() * .8, cmap='tab20',
+                  interpolation='nearest')
+
+    axs[2].imshow(data['image'].squeeze().numpy(), cmap='gray')
+    axs[2].imshow(data['fracture_heatmap'], cmap='hot', alpha=.8)
 
     plt.show()
