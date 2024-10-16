@@ -104,7 +104,6 @@ class GrazPedWriDataModule(LightningDataModule):
         return torch.utils.data.DataLoader(self.test_dataset, **self.dl_kwargs)
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        print('i should be first')
         batch['image'] = self.normalize(batch['image'])
         return batch
 
