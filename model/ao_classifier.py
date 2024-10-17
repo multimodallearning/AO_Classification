@@ -9,7 +9,7 @@ from clearml import Task, Logger
 
 
 class AOClassifier(LightningModule):
-    def __init__(self, resnet_depth: int = 34, n_classes: int = 8,
+    def __init__(self, n_classes: int = 8,
                  use_image: bool = True, use_frac_loc: bool = False, use_bin_seg: bool = False,
                  use_mult_seg: bool = False):
         if (use_bin_seg or use_mult_seg) and (use_bin_seg == use_mult_seg):
@@ -23,19 +23,11 @@ class AOClassifier(LightningModule):
             n_input_channel += 16  # 17 bones, but 1 is already added by use_mult_seg
 
         # model
-        try:
-            self.model = {
-                18: models.resnet18,
-                34: models.resnet34,
-                50: models.resnet50
-            }[resnet_depth]
-        except KeyError:
-            raise NotImplementedError(f"ResNet-{resnet_depth} is not implemented.")
-        self.model = self.model(weights='DEFAULT')
+        self.model = models.mobilenet_v3_small(weights='DEFAULT')
         # replace first conv depending on input config
-        self.model.conv1 = nn.Conv2d(n_input_channel, 64, 7, 2, 3, bias=False)
-        self.latent_dim = self.model.fc.in_features
-        self.model.fc = nn.Identity()
+        self.model.features[0][0] = nn.Conv2d(n_input_channel, 16, 3, 2, 1, bias=False)
+        self.latent_dim = self.model.classifier[0].in_features
+        self.model.classifier = nn.Identity()
 
         self.classifier = nn.Linear(self.latent_dim, n_classes)
 
@@ -82,9 +74,9 @@ class AOClassifier(LightningModule):
         x = torch.cat([
             batch['image'] if use_image else torch.empty(0, device=self.device),
             batch['fracture_heatmap'] if use_frac_loc else torch.empty(0, device=self.device),
-            batch['segmentation'].any(1) if use_bin_seg else torch.empty(0, device=self.device),
+            batch['segmentation'].any(1, keepdim=True) if use_bin_seg else torch.empty(0, device=self.device),
             batch['segmentation'] if use_mult_seg else torch.empty(0, device=self.device)
-        ])
+        ], dim=1)
 
         features = self.model(x)
         y_hat = self.classifier(features)

@@ -1,0 +1,4 @@
+use_image: false
+use_frac_loc: true
+use_bin_seg: false
+use_mult_seg: true
