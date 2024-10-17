@@ -1,17 +1,14 @@
 import logging
-from pathlib import Path
 from typing import Any
 
+import h5py
 import pandas as pd
 import torch
-from PIL import Image
 from kornia.enhance import Normalize
+from kornia.augmentation import RandomAffine, AugmentationSequential
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
-from torchvision.transforms.functional import to_tensor
 from tqdm import tqdm
-import h5py
-from dataset.heatmap_extractor import HeatmapExtractor
 
 
 class GrazPedWriDataset(Dataset):
@@ -53,6 +50,7 @@ class GrazPedWriDataset(Dataset):
             img = torch.from_numpy(h5_dataset[file_name]['image'][:])
             seg = torch.from_numpy(h5_dataset[file_name]['segmentation'][:])
             heatmap = torch.from_numpy(h5_dataset[file_name]['fracture_heatmap'][:])
+            heatmap = heatmap.unsqueeze(0)  # add channel dimension
             y = torch.from_numpy(h5_dataset[file_name]['y'][:])
 
             self.data[file_name] = {
@@ -80,12 +78,19 @@ class GrazPedWriDataset(Dataset):
 
 
 class GrazPedWriDataModule(LightningDataModule):
-    def __init__(self, fold: int = 0, batch_size: int = 64, number_training_samples: int | str = 'all'):
+    def __init__(self, fold: int = 0, batch_size: int = 64, number_training_samples: int | str = 'all',
+                 affine_params_rot_trans_scale: tuple = (30, 0.1, 0.15)):
         super().__init__()
         self.n_train = number_training_samples
         self.fold = fold
         self.dl_kwargs = {'batch_size': batch_size, 'num_workers': 4, 'pin_memory': torch.cuda.is_available()}
         self.normalize = Normalize(mean=GrazPedWriDataset.IMG_MEAN, std=GrazPedWriDataset.IMG_STD)
+
+        # data augmentation
+        rotate, translate, scale = affine_params_rot_trans_scale
+        self.data_aug = AugmentationSequential(
+            RandomAffine(degrees=rotate, translate=(translate,) * 2, scale=(1 - scale, 1 + scale), p=1),
+            data_keys=['image', 'mask', 'image'])
 
     def setup(self, stage: str = None):
         if stage == 'fit' or stage is None:
@@ -104,6 +109,11 @@ class GrazPedWriDataModule(LightningDataModule):
         return torch.utils.data.DataLoader(self.test_dataset, **self.dl_kwargs)
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+        # data augmentation
+        if self.trainer.training:
+            aug_batch = self.data_aug(batch['image'], batch['segmentation'], batch['fracture_heatmap'])
+            batch['image'], batch['segmentation'], batch['fracture_heatmap'] = aug_batch
+
         batch['image'] = self.normalize(batch['image'])
         return batch
 

@@ -45,12 +45,18 @@ class AOClassifier(LightningModule):
         # metrics
         self.train_metrics = MetricCollection({
             "acc": classification.MultilabelAccuracy(num_labels=n_classes, average=None),
-            "f1": classification.MultilabelF1Score(num_labels=n_classes, average=None)
+            "f1": classification.MultilabelF1Score(num_labels=n_classes, average=None),
+            "prec": classification.MultilabelPrecision(num_labels=n_classes, average=None),
+            "rec": classification.MultilabelRecall(num_labels=n_classes, average=None)
         }, postfix='/train')
         self.val_metrics = self.train_metrics.clone(postfix='/val')
 
+        self.save_hyperparameters()
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.trainer.max_epochs,
+        #                                                        eta_min=self.hparams.lr / 100)
         return optimizer
 
     def on_fit_start(self) -> None:
@@ -69,6 +75,7 @@ class AOClassifier(LightningModule):
 
         if Task.current_task() is not None:
             Task.current_task().set_name(f'{"_".join(task_id)}')
+            Task.current_task().set_tags([f'fold {self.trainer.datamodule.fold}'])
 
     def forward(self, batch):
         use_image, use_frac_loc, use_bin_seg, use_mult_seg = self.input_config
@@ -101,25 +108,28 @@ class AOClassifier(LightningModule):
 
         return loss
 
+    def report_histogram(self, metric_collection:MetricCollection, mode:str):
+        if Logger.current_logger() is None:
+            return
+
+        epoch_values = metric_collection.compute()
+        class_labels = self.trainer.datamodule.train_dataset.CLASS_LABELS
+        for name, value in epoch_values.items():
+            name = name.split('/')[0]
+            Logger.current_logger().report_histogram(name, mode, value.cpu().numpy(), self.current_epoch,
+                                                     xaxis='class', yaxis=name, xlabels=class_labels)
+
+        metric_collection.reset()
+
+
     def training_step(self, batch):
         return self.step_with_monitoring(batch, "train")
 
     def on_train_epoch_end(self) -> None:
-        epoch_values = self.train_metrics.compute()
-        class_labels = self.trainer.datamodule.train_dataset.CLASS_LABELS
-        for name, value in epoch_values.items():
-            Logger.current_logger().report_histogram(name, 'train', value.cpu().numpy(), self.current_epoch,
-                                                     xaxis='class', yaxis=name, xlabels=class_labels)
-
-        self.train_metrics.reset()
+        self.report_histogram(self.train_metrics, 'train')
 
     def validation_step(self, batch):
         return self.step_with_monitoring(batch, "val")
 
     def on_validation_epoch_end(self) -> None:
-        epoch_values = self.val_metrics.compute()
-        class_labels = self.trainer.datamodule.train_dataset.CLASS_LABELS
-        for name, value in epoch_values.items():
-            Logger.current_logger().report_histogram(name, 'val', value.cpu().numpy(), self.current_epoch,
-                                                     xaxis='class', yaxis=name, xlabels=class_labels)
-        self.val_metrics.reset()
+        self.report_histogram(self.val_metrics, 'val')
