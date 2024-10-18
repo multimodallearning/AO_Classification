@@ -1,0 +1,10 @@
+# lightning.pytorch==2.3.3
+# precision: 16-mixed
+devices: [3]
+max_epochs: 100
+callbacks:
+  - class_path: "pytorch_lightning.callbacks.ModelCheckpoint"
+    init_args:
+      monitor: "auroc/val"
+      mode: "max"
+      filename: "best"

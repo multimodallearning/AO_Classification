@@ -1,15 +1,13 @@
-from typing import Any
-
+import torch
+from clearml import Task, Logger
 from pytorch_lightning import LightningModule
 from torch import nn
-from torchvision import models
-import torch
 from torchmetrics import classification, MetricCollection
-from clearml import Task, Logger
+from torchvision import models
 
 
 class AOClassifier(LightningModule):
-    def __init__(self, n_classes: int = 8,
+    def __init__(self, resnet_depth: int = 18, n_classes: int = 8, classifier_dropout: float = 0.6,
                  use_image: bool = True, use_frac_loc: bool = False, use_bin_seg: bool = False,
                  use_mult_seg: bool = False):
         if (use_bin_seg or use_mult_seg) and (use_bin_seg == use_mult_seg):
@@ -23,13 +21,21 @@ class AOClassifier(LightningModule):
             n_input_channel += 16  # 17 bones, but 1 is already added by use_mult_seg
 
         # model
-        self.model = models.mobilenet_v3_small(weights='DEFAULT')
+        try:
+            self.model = {
+                18: models.resnet18,
+                34: models.resnet34,
+                50: models.resnet50
+            }[resnet_depth]
+        except KeyError:
+            raise NotImplementedError(f"ResNet-{resnet_depth} is not implemented.")
+        self.model = self.model(weights='DEFAULT')
         # replace first conv depending on input config
-        self.model.features[0][0] = nn.Conv2d(n_input_channel, 16, 3, 2, 1, bias=False)
-        self.latent_dim = self.model.classifier[0].in_features
-        self.model.classifier = nn.Identity()
+        self.model.conv1 = nn.Conv2d(n_input_channel, 64, 7, 2, 3, bias=False)
+        self.latent_dim = self.model.fc.in_features
+        self.model.fc = nn.Identity()
 
-        self.classifier = nn.Linear(self.latent_dim, n_classes)
+        self.classifier = nn.Sequential(nn.Dropout(classifier_dropout, True), nn.Linear(self.latent_dim, n_classes))
 
         # loss
         self.bce = nn.BCEWithLogitsLoss()
@@ -39,7 +45,8 @@ class AOClassifier(LightningModule):
             "acc": classification.MultilabelAccuracy(num_labels=n_classes, average=None),
             "f1": classification.MultilabelF1Score(num_labels=n_classes, average=None),
             "prec": classification.MultilabelPrecision(num_labels=n_classes, average=None),
-            "rec": classification.MultilabelRecall(num_labels=n_classes, average=None)
+            "rec": classification.MultilabelRecall(num_labels=n_classes, average=None),
+            "auroc": classification.MultilabelAUROC(num_labels=n_classes, average=None)
         }, postfix='/train')
         self.val_metrics = self.train_metrics.clone(postfix='/val')
 
@@ -71,11 +78,12 @@ class AOClassifier(LightningModule):
 
     def forward(self, batch):
         use_image, use_frac_loc, use_bin_seg, use_mult_seg = self.input_config
+        dummy = torch.empty(0, device=self.device)
         x = torch.cat([
-            batch['image'] if use_image else torch.empty(0, device=self.device),
-            batch['fracture_heatmap'] if use_frac_loc else torch.empty(0, device=self.device),
-            batch['segmentation'].any(1, keepdim=True) if use_bin_seg else torch.empty(0, device=self.device),
-            batch['segmentation'] if use_mult_seg else torch.empty(0, device=self.device)
+            batch['image'] if use_image else dummy,
+            batch['fracture_heatmap'] if use_frac_loc else dummy,
+            batch['segmentation'].any(1, keepdim=True) if use_bin_seg else dummy,
+            batch['segmentation'] if use_mult_seg else dummy
         ], dim=1)
 
         features = self.model(x)
@@ -90,7 +98,7 @@ class AOClassifier(LightningModule):
         with torch.no_grad():
             # metrics
             metrics = self.train_metrics if mode == 'train' else self.val_metrics
-            batch_values = metrics(y_hat, y)
+            batch_values = metrics(y_hat.sigmoid(), y.int())
 
             # logging
             logg_kwargs = {"on_step": False, "on_epoch": True, "batch_size": len(y)}
