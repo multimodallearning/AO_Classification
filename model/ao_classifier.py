@@ -74,7 +74,7 @@ class AOClassifier(LightningModule):
 
         if Task.current_task() is not None:
             Task.current_task().set_name(f'{"_".join(task_id)}')
-            Task.current_task().set_tags([f'fold {self.trainer.datamodule.fold}'])
+            # Task.current_task().set_tags([f'fold {self.trainer.datamodule.fold}'])
 
     def forward(self, batch):
         use_image, use_frac_loc, use_bin_seg, use_mult_seg = self.input_config

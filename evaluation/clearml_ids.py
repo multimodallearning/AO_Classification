@@ -1,0 +1,8 @@
+frac_loc_bin_seg = '00391da0819842e198c1db82a30a4f71'
+frac_loc_mult_seg = '6808528890ca47bab32d3495e1707f1e'
+image = '0f9c5c90311a426c8b6cb85e2d31e622'
+image_bin_seg = 'e6a2cb5fd4e743f686f7d22e2552f582'
+image_frac_loc = '2abf393ca5ba4ff0aa538d617a9a778e'
+image_frac_loc_bin_seg = '79a21ac11cfa4bc79d6270a1db307acc'
+image_frac_loc_bin_seg = '2ded4f303c8a4df9b7328afa4eeb5187'
+image_mult_seg = '0a7718d59adc4788a1305097e3e3c1f2'

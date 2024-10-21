@@ -23,7 +23,7 @@ class GrazPedWriDataset(Dataset):
     BCE_POS_WEIGHT = torch.tensor(
         [16.601983, 14.02660218, 16.18810512, 5.89240155, 3.82040341, 6.73304294, 9.7037037, 3.11217737])
 
-    def __init__(self, mode: str, fold: int = 0, number_training_samples: int | str = 'all'):
+    def __init__(self, mode: str, fold: int, number_training_samples: int | str = 'all'):
         super().__init__()
         # load data meta and other information
         self.df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
@@ -78,7 +78,7 @@ class GrazPedWriDataset(Dataset):
 
 
 class GrazPedWriDataModule(LightningDataModule):
-    def __init__(self, fold: int = 0, batch_size: int = 64, number_training_samples: int | str = 'all',
+    def __init__(self, fold: int = 1, batch_size: int = 64, number_training_samples: int | str = 'all',
                  affine_params_rot_trans_scale: tuple = (30, 0.1, 0.15)):
         super().__init__()
         self.n_train = number_training_samples
@@ -135,6 +135,6 @@ if __name__ == '__main__':
                   interpolation='nearest')
 
     axs[2].imshow(data['image'].squeeze().numpy(), cmap='gray')
-    axs[2].imshow(data['fracture_heatmap'], cmap='hot', alpha=.8)
+    axs[2].imshow(data['fracture_heatmap'].squeeze(0), cmap='hot', alpha=.8)
 
     plt.show()
