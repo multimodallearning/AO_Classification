@@ -47,7 +47,7 @@ if __name__ == '__main__':
     from matplotlib import pyplot as plt
 
     file_stem = "0003_0662359226_01_WRI-R1_M011"
-    lbl_path = Path(f'/home/ron/Documents/AOClassification/data/yolo_labels/{file_stem}.txt')
+    lbl_path = Path(f'/home/ron/Documents/AOClassification/data/yolo_labels/predictions/{file_stem}.txt')
     img = Image.open(f'data/img_only_front_all_left/{file_stem}.png').convert('L')
 
     extractor = HeatmapExtractor(resolution_HW=(img.height, img.width), class2extract=3)

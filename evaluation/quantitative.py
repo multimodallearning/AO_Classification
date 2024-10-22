@@ -18,7 +18,7 @@ gt = torch.load(pred_dir / 'ground_truth.pt')
 mean_df = pd.DataFrame(columns=['Experiment', 'Acc@1', 'F1', 'Precision', 'Recall', 'AUROC'])
 experiment_df = pd.DataFrame(columns=['Experiment', 'Acc@1', 'F1', 'Precision', 'Recall', 'AUROC', 'AO_Class'])
 for experiment in pred_dir.iterdir():
-    if experiment.stem == 'ground_truth':
+    if experiment.stem == 'ground_truth' or experiment.is_dir():
         continue
 
     pred = torch.load(experiment)

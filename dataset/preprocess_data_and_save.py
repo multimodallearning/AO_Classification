@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 from pathlib import Path
 import h5py
@@ -11,7 +13,8 @@ from dataset.grazpedwri_dataset import GrazPedWriDataset
 save_dir = Path('data/preprocessed_data.h5')
 
 img_path = Path('data/img_only_front_all_left')
-yolo_label_path = Path('data/yolo_labels')
+yolo_label_path = Path('data/yolo_labels/ground_truth')
+yolo_prediction_path = Path('data/yolo_labels/predictions')
 
 df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
 h5_dataset = h5py.File(save_dir, 'w')
@@ -32,9 +35,16 @@ for file_name in tqdm(df_meta.index, unit='img', desc=f'Preprocessing data'):
     seg = h5_saved_seg[file_name][:]
 
     # fracture heatmap
-    heatmap = heatmap_extractor.extract_heatmap(yolo_label_path.joinpath(file_name).with_suffix('.txt'))
+    heatmap_gt = heatmap_extractor.extract_heatmap(yolo_label_path.joinpath(file_name).with_suffix('.txt'))
+    try:
+        heatmap_pred = heatmap_extractor.extract_heatmap(yolo_prediction_path.joinpath(file_name).with_suffix('.txt'))
+    except FileNotFoundError:
+        print(f'No prediction found for {file_name}. This is normal, if no predictable object was found, but should be'
+              f'checked, because we will create a zero heatmap for this case leading into a silent error.')
+        heatmap_pred = torch.zeros_like(heatmap_gt)
     if need2flip:
-        heatmap = heatmap.flip(1)
+        heatmap_gt = heatmap_gt.flip(1)
+        heatmap_pred = heatmap_pred.flip(1)
 
     # classification ground truth
     class_label: str = df_meta.loc[file_name, 'ao_classification']
@@ -51,16 +61,8 @@ for file_name in tqdm(df_meta.index, unit='img', desc=f'Preprocessing data'):
     h5_dataset.create_group(file_name)
     h5_dataset[file_name]['image'] = img
     h5_dataset[file_name]['segmentation'] = seg
-    h5_dataset[file_name]['fracture_heatmap'] = heatmap
+    h5_dataset[file_name]['fracture_heatmap_ground_truth'] = heatmap_gt
+    h5_dataset[file_name]['fracture_heatmap_yolo_prediction'] = heatmap_pred
     h5_dataset[file_name]['y'] = y
 
 h5_dataset.close()
-
-    # self.data[file_name] = {
-    #     'file_name': file_name,
-    #     'image': img,
-    #     'segmentation': seg,
-    #     'fracture_heatmap': heatmap,
-    #     'y': y
-    #
-    # }

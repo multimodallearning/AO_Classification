@@ -23,7 +23,7 @@ class GrazPedWriDataset(Dataset):
     BCE_POS_WEIGHT = torch.tensor(
         [16.601983, 14.02660218, 16.18810512, 5.89240155, 3.82040341, 6.73304294, 9.7037037, 3.11217737])
 
-    def __init__(self, mode: str, fold: int, number_training_samples: int | str = 'all'):
+    def __init__(self, mode: str, fold: int, number_training_samples: int | str = 'all', use_yolo_predictions: bool = False):
         super().__init__()
         # load data meta and other information
         self.df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
@@ -49,7 +49,10 @@ class GrazPedWriDataset(Dataset):
         for file_name in tqdm(self.available_file_names, unit='img', desc=f'Loading data for {mode}'):
             img = torch.from_numpy(h5_dataset[file_name]['image'][:])
             seg = torch.from_numpy(h5_dataset[file_name]['segmentation'][:])
-            heatmap = torch.from_numpy(h5_dataset[file_name]['fracture_heatmap'][:])
+            if use_yolo_predictions:
+                heatmap = torch.from_numpy(h5_dataset[file_name]['fracture_heatmap_yolo_prediction'][:])
+            else:  # use ground truth
+                heatmap = torch.from_numpy(h5_dataset[file_name]['fracture_heatmap_ground_truth'][:])
             heatmap = heatmap.unsqueeze(0)  # add channel dimension
             y = torch.from_numpy(h5_dataset[file_name]['y'][:])
 
@@ -97,7 +100,7 @@ class GrazPedWriDataModule(LightningDataModule):
             self.train_dataset = GrazPedWriDataset('train', self.fold, self.n_train)
             self.val_dataset = GrazPedWriDataset('val', self.fold)
         if stage == 'test' or stage is None:
-            self.test_dataset = GrazPedWriDataset('val', self.fold)
+            self.test_dataset = GrazPedWriDataset('val', self.fold, use_yolo_predictions=True)
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, shuffle=True, drop_last=True, **self.dl_kwargs)
@@ -122,7 +125,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from torch.utils.data import DataLoader
 
-    dataset = GrazPedWriDataset('val', fold=1)
+    dataset = GrazPedWriDataset('val', fold=1, use_yolo_predictions=True)
     data = dataset[0]
     print(data['image'].shape)
     print(data['y'])
