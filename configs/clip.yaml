@@ -1,0 +1,14 @@
+# lightning.pytorch==2.3.3
+seed_everything: true
+trainer:
+  precision: 16-mixed
+  max_epochs: 100
+  devices: [5]
+  callbacks:
+    - class_path: "pytorch_lightning.callbacks.ModelCheckpoint"
+      init_args:
+        monitor: "CE_total/Valid"
+        filename: "best"
+  log_every_n_steps: 30
+data:
+  batch_size: 256

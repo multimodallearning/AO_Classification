@@ -23,10 +23,13 @@ class GrazPedWriDataset(Dataset):
     BCE_POS_WEIGHT = torch.tensor(
         [16.601983, 14.02660218, 16.18810512, 5.89240155, 3.82040341, 6.73304294, 9.7037037, 3.11217737])
 
-    def __init__(self, mode: str, fold: int, number_training_samples: int | str = 'all', use_yolo_predictions: bool = False):
+    def __init__(self, mode: str, fold: int = 1, number_training_samples: int | str = 'all',
+                 use_yolo_predictions: bool = False):
         super().__init__()
         # load data meta and other information
         self.df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
+        self.df_meta['report'] = self.df_meta['report'].apply(lambda x: 'Kein Befund verfügbar.' if pd.isna(x) else x)
+
         # init ground truth parser considering the data split
         assert fold <= self.df_meta['fold'].max(), f'max fold index is {self.df_meta["fold"].max()}'
         if mode == 'train':
@@ -55,14 +58,15 @@ class GrazPedWriDataset(Dataset):
                 heatmap = torch.from_numpy(h5_dataset[file_name]['fracture_heatmap_ground_truth'][:])
             heatmap = heatmap.unsqueeze(0)  # add channel dimension
             y = torch.from_numpy(h5_dataset[file_name]['y'][:])
+            report = self.df_meta.loc[file_name, 'report']
 
             self.data[file_name] = {
                 'file_name': file_name,
                 'image': img,
                 'segmentation': seg,
                 'fracture_heatmap': heatmap,
-                'y': y
-
+                'y': y,
+                'report': report
             }
 
     def __len__(self):
