@@ -61,19 +61,19 @@ class AOClassifier(LightningModule):
     def on_fit_start(self) -> None:
         self.bce.pos_weight = self.trainer.datamodule.train_dataset.BCE_POS_WEIGHT.to(self.device)
 
-        task_id = []
+        task_name = []
         use_image, use_frac_loc, use_bin_seg, use_mult_seg = self.input_config
         if use_image:
-            task_id.append('image')
+            task_name.append('image')
         if use_frac_loc:
-            task_id.append('frac_loc')
+            task_name.append('frac_loc')
         if use_bin_seg:
-            task_id.append('bin_seg')
+            task_name.append('bin_seg')
         if use_mult_seg:
-            task_id.append('mult_seg')
+            task_name.append('mult_seg')
 
         if Task.current_task() is not None:
-            Task.current_task().set_name(f'{"_".join(task_id)}')
+            Task.current_task().set_name(f'{"_".join(task_name)}')
             # Task.current_task().set_tags([f'fold {self.trainer.datamodule.fold}'])
 
     def forward(self, batch):
