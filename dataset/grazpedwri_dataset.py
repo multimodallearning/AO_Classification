@@ -48,6 +48,7 @@ class GrazPedWriDataset(Dataset):
 
         # load data into memory
         h5_dataset = h5py.File('data/preprocessed_data.h5', 'r')
+        h5_clip_embed = h5py.File('data/clip_embed.h5', 'r')
         self.data = dict()
         for file_name in tqdm(self.available_file_names, unit='img', desc=f'Loading data for {mode}'):
             img = torch.from_numpy(h5_dataset[file_name]['image'][:])
@@ -59,6 +60,7 @@ class GrazPedWriDataset(Dataset):
             heatmap = heatmap.unsqueeze(0)  # add channel dimension
             y = torch.from_numpy(h5_dataset[file_name]['y'][:])
             report = self.df_meta.loc[file_name, 'report']
+            txt_embed = torch.from_numpy(h5_clip_embed[file_name]['text'][:])
 
             self.data[file_name] = {
                 'file_name': file_name,
@@ -66,7 +68,8 @@ class GrazPedWriDataset(Dataset):
                 'segmentation': seg,
                 'fracture_heatmap': heatmap,
                 'y': y,
-                'report': report
+                'report': report,
+                'clip_txt_embed': txt_embed
             }
 
     def __len__(self):
@@ -106,8 +109,6 @@ class GrazPedWriDataModule(LightningDataModule):
             self.val_dataset = GrazPedWriDataset('val', self.fold)
         if stage == 'test' or stage is None:
             self.test_dataset = GrazPedWriDataset('val', self.fold, use_yolo_predictions=True)
-            if not torch.cuda.is_available():
-                print("DO NOT FORGET TO NORMALIZE TEST DATA WHEN RUNNING ON CPU")
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, shuffle=True, drop_last=True, **self.dl_kwargs)
@@ -136,6 +137,7 @@ if __name__ == '__main__':
     data = dataset[0]
     print(data['image'].shape)
     print(data['y'])
+    print(data['clip_txt_embed'].shape)
     fig, axs = plt.subplots(1, 3, num=data['file_name'])
     axs[0].imshow(data['image'].squeeze().numpy(), cmap='gray')
     axs[0].set_title(dataset.CLASS_LABELS[data['y'].argmax()])

@@ -9,11 +9,12 @@ from torchvision import models
 class AOClassifier(LightningModule):
     def __init__(self, resnet_depth: int = 18, n_classes: int = 8, classifier_dropout: float = 0.6,
                  use_image: bool = True, use_frac_loc: bool = False, use_bin_seg: bool = False,
-                 use_mult_seg: bool = False):
+                 use_mult_seg: bool = False, use_clip: bool = False):
         if (use_bin_seg or use_mult_seg) and (use_bin_seg == use_mult_seg):
             raise AssertionError("Binary and multilabel segmentation should be used exclusively.")
         super().__init__()
         # input config
+        self.use_clip = use_clip
         self.input_config = (use_image, use_frac_loc, use_bin_seg, use_mult_seg)
         assert any(self.input_config), "At least one input type must be used."
         n_input_channel = sum(self.input_config)
@@ -34,6 +35,9 @@ class AOClassifier(LightningModule):
         self.model.conv1 = nn.Conv2d(n_input_channel, 64, 7, 2, 3, bias=False)
         self.latent_dim = self.model.fc.in_features
         self.model.fc = nn.Identity()
+
+        if use_clip:
+            self.latent_dim += 512  # CLIP latent dim
 
         self.classifier = nn.Sequential(nn.Dropout(classifier_dropout, True), nn.Linear(self.latent_dim, n_classes))
 
@@ -71,6 +75,8 @@ class AOClassifier(LightningModule):
             task_name.append('bin_seg')
         if use_mult_seg:
             task_name.append('mult_seg')
+        if self.use_clip:
+            task_name.append('clip')
 
         if Task.current_task() is not None:
             Task.current_task().set_name(f'{"_".join(task_name)}')
@@ -87,6 +93,9 @@ class AOClassifier(LightningModule):
         ], dim=1)
 
         features = self.model(x)
+
+        if self.use_clip:
+            features = torch.cat([features, batch['clip_txt_embed']], dim=1)
         y_hat = self.classifier(features)
         return y_hat
 
@@ -108,7 +117,7 @@ class AOClassifier(LightningModule):
 
         return loss
 
-    def report_histogram(self, metric_collection:MetricCollection, mode:str):
+    def report_histogram(self, metric_collection: MetricCollection, mode: str):
         if Logger.current_logger() is None:
             return
 
@@ -120,7 +129,6 @@ class AOClassifier(LightningModule):
                                                      xaxis='class', yaxis=name, xlabels=class_labels)
 
         metric_collection.reset()
-
 
     def training_step(self, batch):
         return self.step_with_monitoring(batch, "train")

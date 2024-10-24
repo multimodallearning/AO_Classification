@@ -17,7 +17,7 @@ yolo_label_path = Path('data/yolo_labels/ground_truth')
 yolo_prediction_path = Path('data/yolo_labels/predictions')
 
 df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
-h5_dataset = h5py.File(save_dir, 'w')
+h5_dataset = h5py.File(save_dir, 'x')
 h5_dataset.attrs['n_classes'] = GrazPedWriDataset.N_CLASSES
 h5_dataset.attrs['class_labels'] = GrazPedWriDataset.CLASS_LABELS
 # load data
