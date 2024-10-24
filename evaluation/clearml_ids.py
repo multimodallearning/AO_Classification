@@ -6,3 +6,9 @@ image_frac_loc = '2abf393ca5ba4ff0aa538d617a9a778e'
 image_frac_loc_bin_seg = '79a21ac11cfa4bc79d6270a1db307acc'
 image_frac_loc_mult_seg = '2ded4f303c8a4df9b7328afa4eeb5187'
 image_mult_seg = '0a7718d59adc4788a1305097e3e3c1f2'
+
+# linear evaluation
+LE_ae = 'e8de03c653344be5b786ade0d72097f6'
+LE_imagenet = '649ad8f350894fac9b7609107dfaa7a3'
+LE_clip_txt = '68cc3417885f40f89f0662c68268b05c'
+LE_clip_img = 'bf6139aa689a4a0ab01a8a9acfffafd9'

@@ -106,6 +106,8 @@ class GrazPedWriDataModule(LightningDataModule):
             self.val_dataset = GrazPedWriDataset('val', self.fold)
         if stage == 'test' or stage is None:
             self.test_dataset = GrazPedWriDataset('val', self.fold, use_yolo_predictions=True)
+            if not torch.cuda.is_available():
+                print("DO NOT FORGET TO NORMALIZE TEST DATA WHEN RUNNING ON CPU")
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.train_dataset, shuffle=True, drop_last=True, **self.dl_kwargs)

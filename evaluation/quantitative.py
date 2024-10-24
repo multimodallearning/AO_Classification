@@ -4,6 +4,8 @@ from dataset.grazpedwri_dataset import GrazPedWriDataset
 import pandas as pd
 from pathlib import Path
 
+mode = ['end2end', 'lin_eval'][0]
+
 metrics_kwargs = {'num_labels': GrazPedWriDataset.N_CLASSES, 'average': None}
 metrics = MetricCollection({
     "Acc@1": classification.MultilabelAccuracy(**metrics_kwargs),
@@ -18,7 +20,9 @@ gt = torch.load(pred_dir / 'ground_truth.pt')
 mean_df = pd.DataFrame(columns=['Experiment', 'Acc@1', 'F1', 'Precision', 'Recall', 'AUROC'])
 experiment_df = pd.DataFrame(columns=['Experiment', 'Acc@1', 'F1', 'Precision', 'Recall', 'AUROC', 'AO_Class'])
 for experiment in pred_dir.iterdir():
-    if experiment.stem == 'ground_truth' or experiment.is_dir():
+    is_line_eval = experiment.stem.startswith('LE')
+    match_mode = (mode == 'lin_eval' and is_line_eval) or (mode == 'end2end' and not is_line_eval)
+    if experiment.stem == 'ground_truth' or experiment.is_dir() or not match_mode:
         continue
 
     pred = torch.load(experiment)
