@@ -26,6 +26,10 @@ experiment_dict = {k: v for k, v in experiment_dict.items() if not k.startswith(
 
 for experiment, clearml_id in experiment_dict.items():
     assert isinstance(clearml_id, str), f"clearml_ids.{experiment} must be a string"
+    if (save_dir / f"{experiment}_{clearml_id}.pt").exists():
+        print(f"{experiment}_{clearml_id} already exists, skipping")
+        continue
+
     predictions = {}
 
     ckpt_path = Task.get_task(clearml_id).artifacts['best.ckpt'].get()
