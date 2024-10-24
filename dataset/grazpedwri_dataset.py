@@ -86,10 +86,11 @@ class GrazPedWriDataset(Dataset):
 
 class GrazPedWriDataModule(LightningDataModule):
     def __init__(self, fold: int = 1, batch_size: int = 64, number_training_samples: int | str = 'all',
-                 affine_params_rot_trans_scale: tuple = (30, 0.1, 0.15)):
+                 affine_params_rot_trans_scale: tuple = (30, 0.1, 0.15), use_data_aug: bool = True):
         super().__init__()
         self.n_train = number_training_samples
         self.fold = fold
+        self.use_data_aug = use_data_aug
         self.dl_kwargs = {'batch_size': batch_size, 'num_workers': 4, 'pin_memory': torch.cuda.is_available()}
         self.normalize = Normalize(mean=GrazPedWriDataset.IMG_MEAN, std=GrazPedWriDataset.IMG_STD)
 
@@ -117,7 +118,7 @@ class GrazPedWriDataModule(LightningDataModule):
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         # data augmentation
-        if self.trainer.training:
+        if self.trainer.training and self.use_data_aug:
             aug_batch = self.data_aug(batch['image'], batch['segmentation'], batch['fracture_heatmap'])
             batch['image'], batch['segmentation'], batch['fracture_heatmap'] = aug_batch
 
