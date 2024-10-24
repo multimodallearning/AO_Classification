@@ -4,11 +4,23 @@ from torchvision.models import resnet18
 
 from model.ao_classifier import AOClassifier
 from model.clip import LightningCLIP
+from model.autoencoder import LightningAutoEncoder
 
 
 class ExpanderRGB(nn.Module):
     def forward(self, x):
         return x.expand(-1, 3, -1, -1)
+
+class AEAvgPool(nn.Module):
+    def __init__(self, img_encoder:nn.Module, latent_dim:int):
+        super().__init__()
+        self.img_encoder = img_encoder
+        self.latent_dim = latent_dim
+
+    def forward(self, x):
+        x = self.img_encoder(x)
+        x = x.view(x.shape[0], self.latent_dim, -1).mean(-1)
+        return x
 
 
 class LinearEvaluation(AOClassifier):
@@ -19,12 +31,16 @@ class LinearEvaluation(AOClassifier):
         self.latent_dim = None
 
         if type == 'CLIP_img':
-            ckpt_path = Task.get_task("f91758de8b3b47718225b6f82b728608").artifacts['best.ckpt'].get()
+            task_id = 'f91758de8b3b47718225b6f82b728608'
+            print(f'Loading model from task {task_id}')
+            ckpt_path = Task.get_task(task_id).artifacts['best.ckpt'].get()
             clip = LightningCLIP.load_from_checkpoint(ckpt_path)
             self.encoder = nn.Sequential(clip.img_encoder, clip.img_projection)
             self.latent_dim = clip.img_projection.projection.out_features
         elif type == 'CLIP_txt':
-            ckpt_path = Task.get_task("f91758de8b3b47718225b6f82b728608").artifacts['best.ckpt'].get()
+            task_id = 'f91758de8b3b47718225b6f82b728608'
+            print(f'Loading model from task {task_id}')
+            ckpt_path = Task.get_task(task_id).artifacts['best.ckpt'].get()
             clip = LightningCLIP.load_from_checkpoint(ckpt_path)
             self.encoder = nn.Sequential(clip.text_encoder, clip.text_projection)
             self.latent_dim = clip.text_projection.projection.out_features
@@ -34,6 +50,13 @@ class LinearEvaluation(AOClassifier):
             self.latent_dim = resnet.fc.in_features
             resnet.fc = nn.Identity()
             self.encoder = nn.Sequential(ExpanderRGB(), resnet)
+        elif type == 'AE':
+            task_id = '9d3f7de80bda411d9662cfd6ef793f4d'
+            print(f'Loading model from task {task_id}')
+            ckpt_path = Task.get_task(task_id).artifacts['best.ckpt'].get()
+            ae = LightningAutoEncoder.load_from_checkpoint(ckpt_path)
+            self.latent_dim = ae.latent_dim
+            self.encoder = AEAvgPool(ae.img_encoder, self.latent_dim)
         else:
             raise ValueError(f'Unknown type: {type}')
         self.encoder.requires_grad_(False)
@@ -42,7 +65,7 @@ class LinearEvaluation(AOClassifier):
         self.save_hyperparameters()
 
     def forward(self, batch):
-        if self.hparams.type in ['imagenet', 'CLIP_img']:  # image processing
+        if self.hparams.type in ['imagenet', 'CLIP_img', 'AE']:  # image processing
             features = self.encoder(batch['image'])
         elif self.hparams.type == 'CLIP_txt':  # text preprocessing
             # tokenize text
