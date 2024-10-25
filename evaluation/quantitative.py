@@ -4,7 +4,7 @@ from dataset.grazpedwri_dataset import GrazPedWriDataset
 import pandas as pd
 from pathlib import Path
 
-mode = ['end2end', 'lin_eval'][0]
+mode = ['end2end', 'lin_eval'][1]
 
 metrics_kwargs = {'num_labels': GrazPedWriDataset.N_CLASSES, 'average': None}
 metrics = MetricCollection({

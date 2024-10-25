@@ -15,5 +15,5 @@ cli = LightningCLI(model_class=LightningCLIP, datamodule_class=GrazPedWriDataMod
 # housekeeping
 trainer = cli.trainer
 Task.current_task().upload_artifact("best.ckpt", trainer.checkpoint_callback.best_model_path, wait_on_upload=True)
-Task.current_task().close()
 rmtree(trainer.logger.log_dir)
+Task.current_task().mark_completed()

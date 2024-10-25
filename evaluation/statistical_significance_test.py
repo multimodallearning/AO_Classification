@@ -4,14 +4,13 @@ from dataset.grazpedwri_dataset import GrazPedWriDataset
 import pandas as pd
 from pathlib import Path
 from scipy.stats import wilcoxon
-
 # supress warnings
 import warnings
 
 warnings.filterwarnings("ignore")
 
+candidate = "image_frac_loc_bin_seg_clip"
 significance_level = 0.05
-candidate = "image_frac_loc_mult_seg"
 
 pred_dir = Path('evaluation/predictions')
 available_experiments = [experiment for experiment in pred_dir.iterdir() if
@@ -29,7 +28,7 @@ y_pred_canditate = torch.stack([y_pred_canditate[file_stem] for file_stem in fil
 auroc_canditate = metric(y_pred_canditate, gt)
 print(f'Candidate: {candidate_path.stem.rsplit('_', 1)[0]} with AUROC: {auroc_canditate.mean().item()}')
 
-df = pd.DataFrame(columns=['Challenger', 'AUROC', 'statistic', 'p-value', f'Significant at {significance_level}'])
+df = pd.DataFrame(columns=['Challenger', 'AUROC', 'statistic', 'p-value', f'significant at {significance_level}'])
 for challenger in available_experiments:
     if challenger == candidate_path:
         continue
@@ -42,9 +41,9 @@ for challenger in available_experiments:
     df = pd.concat([df, pd.DataFrame({
         'Challenger': challenger.stem.rsplit('_', 1)[0],
         'AUROC': auroc_challenger.mean().item(),
+        'statistic': test_result.statistic,
         'p-value': test_result.pvalue,
-        f'significant at {significance_level}': test_result.pvalue < significance_level,
-        'statistic': test_result.statistic
+        f'significant at {significance_level}': test_result.pvalue < significance_level
     }, index=[0]), ], ignore_index=True)
 
 df.set_index('Challenger', inplace=True)
