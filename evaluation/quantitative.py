@@ -1,30 +1,31 @@
+from pathlib import Path
+
+import pandas as pd
 import torch
 from torchmetrics import classification, MetricCollection
-from dataset.grazpedwri_dataset import GrazPedWriDataset
-import pandas as pd
-from pathlib import Path
-from evaluation.best_shot_accuracy import BestShotAccuracy
 
-mode = ['end2end', 'lin_eval'][0]
+from dataset.grazpedwri_dataset import GrazPedWriDataset
+
+mode = ['end2end', 'lin_eval'][1]
 
 metrics_kwargs = {'num_labels': GrazPedWriDataset.N_CLASSES, 'average': None}
 metrics = MetricCollection({
-    "Acc": classification.MultilabelAccuracy(**metrics_kwargs),
+    "Accuracy": classification.MultilabelAccuracy(**metrics_kwargs),
     "F1": classification.MultilabelF1Score(**metrics_kwargs),
     "Precision": classification.MultilabelPrecision(**metrics_kwargs),
     "Recall": classification.MultilabelRecall(**metrics_kwargs),
-    "AUROC": classification.MultilabelAUROC(**metrics_kwargs),
-    "BestShotAcc": BestShotAccuracy()
+    "AUROC": classification.MultilabelAUROC(**metrics_kwargs)
 })
 pred_dir = Path('evaluation/predictions')
 gt = torch.load(pred_dir / 'ground_truth.pt')
 
-mean_df = pd.DataFrame(columns=['Experiment', 'Acc', 'BestShotAcc', 'F1', 'Precision', 'Recall', 'AUROC'])
-experiment_df = pd.DataFrame(columns=['Experiment', 'Acc', 'F1', 'Precision', 'Recall', 'AUROC', 'AO_Class'])
+mean_df = pd.DataFrame(columns=['Experiment', 'Accuracy', 'F1', 'Precision', 'Recall', 'AUROC'])
+experiment_df = pd.DataFrame(columns=['Experiment', 'Accuracy', 'F1', 'Precision', 'Recall', 'AUROC', 'AO_Class'])
 for experiment in pred_dir.iterdir():
     is_line_eval = experiment.stem.startswith('LE')
     match_mode = (mode == 'lin_eval' and is_line_eval) or (mode == 'end2end' and not is_line_eval)
-    if experiment.stem == 'ground_truth' or experiment.is_dir() or not match_mode:
+    contains_mult_seg = 'mult_seg' in experiment.stem
+    if experiment.stem == 'ground_truth' or experiment.is_dir() or not match_mode or contains_mult_seg:
         continue
 
     pred = torch.load(experiment)
@@ -39,8 +40,7 @@ for experiment in pred_dir.iterdir():
     performance = metrics(y_hat, y)
     mean_df = pd.concat([mean_df, pd.DataFrame({
         'Experiment': experiment.stem.rsplit('_', 1)[0],
-        'Acc': performance['Acc'].mean().item(),
-        "BestShotAcc": performance['BestShotAcc'].item(),
+        'Accuracy': performance['Accuracy'].mean().item(),
         'F1': performance['F1'].mean().item(),
         'Precision': performance['Precision'].mean().item(),
         'Recall': performance['Recall'].mean().item(),
@@ -49,7 +49,7 @@ for experiment in pred_dir.iterdir():
 
     experiment_df = pd.concat([experiment_df, pd.DataFrame({
         'Experiment': experiment.stem.rsplit('_', 1)[0],
-        'Acc': performance['Acc'].tolist(),
+        'Accuracy': performance['Accuracy'].tolist(),
         'F1': performance['F1'].tolist(),
         'Precision': performance['Precision'].tolist(),
         'Recall': performance['Recall'].tolist(),

@@ -10,6 +10,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 candidate = "image_frac_loc_bin_seg_clip"
+test_direction = ['greater', 'two-sided'][0]
 significance_level = 0.05
 
 pred_dir = Path('evaluation/predictions')
@@ -22,11 +23,12 @@ gt = torch.load(pred_dir / 'ground_truth.pt')
 filelist = list(gt.keys())
 gt = torch.stack([gt[file_stem] for file_stem in filelist]).int()
 
-candidate_path = [experiment for experiment in available_experiments if experiment.stem.startswith(candidate)][0]
+candidate_path = [experiment for experiment in available_experiments if experiment.name.rsplit('_', 1)[0] == candidate][0]
 y_pred_canditate = torch.load(candidate_path)
 y_pred_canditate = torch.stack([y_pred_canditate[file_stem] for file_stem in filelist])
 auroc_canditate = metric(y_pred_canditate, gt)
-print(f'Candidate: {candidate_path.stem.rsplit('_', 1)[0]} with AUROC: {auroc_canditate.mean().item()}')
+print(f'Candidate: {candidate_path.name.rsplit('_', 1)[0]} with AUROC: {auroc_canditate.mean().item()}')
+print(f'Test direction: {test_direction}')
 
 df = pd.DataFrame(columns=['Challenger', 'AUROC', 'statistic', 'p-value', f'significant at {significance_level}'])
 for challenger in available_experiments:
@@ -47,5 +49,6 @@ for challenger in available_experiments:
     }, index=[0]), ], ignore_index=True)
 
 df.set_index('Challenger', inplace=True)
-df.sort_values('AUROC', ascending=False, inplace=True)
+df.sort_index(inplace=True)
+df.sort_values('p-value', ascending=False, inplace=True)
 print(df.to_string())
