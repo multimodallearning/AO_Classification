@@ -6,7 +6,7 @@ from torchmetrics import classification, MetricCollection
 
 from dataset.grazpedwri_dataset import GrazPedWriDataset
 
-mode = ['end2end', 'lin_eval'][1]
+mode = ['end2end', 'lin_eval'][0]
 
 metrics_kwargs = {'num_labels': GrazPedWriDataset.N_CLASSES, 'average': None}
 metrics = MetricCollection({
