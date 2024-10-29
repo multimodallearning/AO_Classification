@@ -24,8 +24,8 @@ experiment_df = pd.DataFrame(columns=['Experiment', 'Accuracy', 'F1', 'Precision
 for experiment in pred_dir.iterdir():
     is_line_eval = experiment.stem.startswith('LE')
     match_mode = (mode == 'lin_eval' and is_line_eval) or (mode == 'end2end' and not is_line_eval)
-    contains_mult_seg = 'mult_seg' in experiment.stem
-    if experiment.stem == 'ground_truth' or experiment.is_dir() or not match_mode or contains_mult_seg:
+    contains_bin_seg = 'bin_seg' in experiment.stem
+    if experiment.stem == 'ground_truth' or experiment.is_dir() or not match_mode or contains_bin_seg:
         continue
 
     pred = torch.load(experiment)

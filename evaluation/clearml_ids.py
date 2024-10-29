@@ -22,3 +22,6 @@ LE_ae = 'e8de03c653344be5b786ade0d72097f6'
 LE_imagenet = '649ad8f350894fac9b7609107dfaa7a3'
 LE_clip_txt = '68cc3417885f40f89f0662c68268b05c'
 LE_clip_img = 'bf6139aa689a4a0ab01a8a9acfffafd9'
+
+# text baseline
+text_baseline = '72a2ba6b758b48b1bc7eaab16ebc86de'

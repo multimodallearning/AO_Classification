@@ -8,6 +8,7 @@ import clearml_ids
 from dataset.grazpedwri_dataset import GrazPedWriDataModule
 from model.ao_classifier import AOClassifier
 from model.linear_evaluation import LinearEvaluation
+from model.text_ao_classifier import TxtAOClassifier
 
 save_dir = Path("evaluation/predictions")
 
@@ -37,14 +38,15 @@ for experiment, clearml_id in experiment_dict.items():
     # choose correct model
     if experiment.startswith("LE"):
         model = LinearEvaluation.load_from_checkpoint(ckpt_path, strict=False)
+    elif experiment == "text_baseline":
+        model = TxtAOClassifier.load_from_checkpoint(ckpt_path, strict=False)
     else:
         model = AOClassifier.load_from_checkpoint(ckpt_path, strict=False)
     model.eval()
 
     with torch.inference_mode():
         for batch in tqdm(data.test_dataloader(), desc=f"Save predictions for {experiment}"):
-            if not torch.cuda.is_available():
-                batch['image'] = data.normalize(batch['image'])
+            batch['image'] = data.normalize(batch['image'])
             y_hat = model(batch).sigmoid().cpu()
             predictions.update({file_name: y for file_name, y in zip(batch['file_name'], y_hat)})
 
