@@ -9,12 +9,12 @@ def print_mark(key, name):
 
 
 if mode == 'end2end':
-    table = pd.DataFrame(columns=['Img', 'Loc', 'Seg', 'Rep', 'Accuracy', 'F1', 'Precision', 'Recall', 'AUROC'])
+    table = pd.DataFrame(columns=['Img', 'Seg', 'Loc', 'Rep', 'Accuracy', 'F1', 'Precision', 'Recall', 'AUROC'])
     for experiment, row in mean_df.iterrows():
         table = pd.concat([table, pd.DataFrame({
             'Img': print_mark('image', experiment),
-            'Loc': print_mark('loc', experiment),
             'Seg': print_mark('seg', experiment),
+            'Loc': print_mark('loc', experiment),
             'Rep': print_mark('clip', experiment),
             'Accuracy': row['Accuracy'],
             'F1': row['F1'],

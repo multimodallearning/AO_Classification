@@ -9,7 +9,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-candidate = "image_frac_loc_bin_seg_clip"
+candidate = "image_clip"
 test_direction = ['greater', 'two-sided'][0]
 significance_level = 0.05
 

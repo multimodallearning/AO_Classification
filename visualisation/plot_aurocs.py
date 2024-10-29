@@ -6,7 +6,7 @@ from torchmetrics import classification
 
 from dataset.grazpedwri_dataset import GrazPedWriDataset
 
-models2plot = ['image', 'image_frac_loc', 'image_frac_loc_bin_seg_clip']
+models2plot = ['image', 'image_frac_loc', 'image_frac_loc_mult_seg_clip']
 
 pred_dir = Path('evaluation/predictions')
 gt = torch.load(pred_dir / 'ground_truth.pt')
