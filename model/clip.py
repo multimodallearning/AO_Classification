@@ -8,6 +8,11 @@ from torchvision.models import resnet18, resnet34, resnet50
 
 class TextEncoder(nn.Module):
     def __init__(self, huggingface_model_name: str = "distilbert-base-cased", pretrained: bool = True):
+        """
+        Text encoder using DistilBERT
+        :param huggingface_model_name: specify the huggingface model name
+        :param pretrained: use pretrained model
+        """
         super().__init__()
         if pretrained:
             self.model = DistilBertModel.from_pretrained(huggingface_model_name)
@@ -28,6 +33,12 @@ class TextEncoder(nn.Module):
 
 class ProjectionHead(nn.Module):
     def __init__(self, embedding_dim: int, projection_dim: int, dropout: float = 0):
+        """
+        Projection head for CLIP. Two-layer MLP used to project the image and text embeddings to the same space.
+        :param embedding_dim: input embedding dimension
+        :param projection_dim: output projection dimension
+        :param dropout: dropout rate for the second linear layer
+        """
         super().__init__()
         self.projection = nn.Linear(embedding_dim, projection_dim)
         self.gelu = nn.GELU()
@@ -49,6 +60,17 @@ class LightningCLIP(L.LightningModule):
     def __init__(self, resnet_depth: int = 18, projection_dim: int = 256, projection_drop_out: float = 0.1,
                  lr: float = 0.001, weight_decay: float = 0.001, temperature_trainable: bool = False,
                  temperature_log_init: float = 1., temperature_clamp: tuple = (1e-5, 100)):
+        """
+        CLIP model using ResNet and DistilBERT. Code is taken from https://github.com/moein-shariatnia/OpenAI-CLIP
+        :param resnet_depth: encoder depth for image encoder
+        :param projection_dim: dimensionality of the common latent space
+        :param projection_drop_out: drop out rate for the projection head
+        :param lr: learning rate
+        :param weight_decay: weight decay
+        :param temperature_trainable: use trainable temperature for scaling logits before softmax
+        :param temperature_log_init: initial value of the temperature
+        :param temperature_clamp: value range for the temperature
+        """
         super().__init__()
         self.logit_scale = nn.Parameter(torch.tensor(temperature_log_init).log()).requires_grad_(temperature_trainable)
 

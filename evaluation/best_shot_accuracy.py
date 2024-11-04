@@ -4,6 +4,10 @@ import torch
 
 class BestShotAccuracy(Metric):
     def __init__(self):
+        """
+        Best shot accuracy metric. The best shot is the shot with the highest confidence score. The metric is calculated
+        as the ratio of correct best shots to the total number of samples.
+        """
         super().__init__()
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")

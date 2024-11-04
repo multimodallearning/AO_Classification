@@ -1,3 +1,5 @@
+# container to manage clearml task ids
+
 frac_loc_bin_seg = '00391da0819842e198c1db82a30a4f71'
 frac_loc_mult_seg = '6808528890ca47bab32d3495e1707f1e'
 image = '0f9c5c90311a426c8b6cb85e2d31e622'

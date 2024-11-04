@@ -1,3 +1,5 @@
+# test the statistical significance of the candidate experiment against all other experiments
+
 import torch
 from torchmetrics.functional import classification
 from dataset.grazpedwri_dataset import GrazPedWriDataset
@@ -9,7 +11,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-candidate = "image_clip"
+candidate = "image_frac_loc_clip"
 test_direction = ['greater', 'two-sided'][0]
 significance_level = 0.05
 

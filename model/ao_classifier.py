@@ -10,6 +10,17 @@ class AOClassifier(LightningModule):
     def __init__(self, resnet_depth: int = 18, n_classes: int = 8, classifier_dropout: float = 0.6,
                  use_image: bool = True, use_frac_loc: bool = False, use_bin_seg: bool = False,
                  use_mult_seg: bool = False, use_clip: bool = False):
+        """
+        Implementation of our multimodalitie AO classifier (see Fig. 1 in the paper).
+        :param resnet_depth: depth of the resnet backbone (18, 34, 50)
+        :param n_classes: number of classes
+        :param classifier_dropout: dropout rate for the last fully connected layer on the concatenated features
+        :param use_image: use radiographs as input
+        :param use_frac_loc: use fracture localization heatmaps as input
+        :param use_bin_seg: use binary segmentation as input
+        :param use_mult_seg: use multilabel segmentation as input
+        :param use_clip: use CLIP embeddings of radiology reports as input
+        """
         if (use_bin_seg or use_mult_seg) and (use_bin_seg == use_mult_seg):
             raise AssertionError("Binary and multilabel segmentation should be used exclusively.")
         super().__init__()

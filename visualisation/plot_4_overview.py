@@ -1,3 +1,5 @@
+# script to generate the plots for the overview figure in the paper
+
 import matplotlib.pyplot as plt
 
 from dataset.grazpedwri_dataset import GrazPedWriDataset

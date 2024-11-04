@@ -1,3 +1,5 @@
+# script to generate CLIP embeddings for the GrazPedWri dataset
+
 from pathlib import Path
 
 import h5py

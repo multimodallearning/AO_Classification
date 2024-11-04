@@ -1,3 +1,5 @@
+# create YOLO dataset using the predefined train/validation split
+
 from shutil import copy
 from pathlib import Path
 import pandas as pd

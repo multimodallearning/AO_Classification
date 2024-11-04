@@ -1,3 +1,5 @@
+# Script to generate predictions of all models specified in clearml_ids.py
+
 from pathlib import Path
 
 import torch

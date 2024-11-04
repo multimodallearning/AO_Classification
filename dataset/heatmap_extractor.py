@@ -4,6 +4,13 @@ from pathlib import Path
 
 class HeatmapExtractor:
     def __init__(self, resolution_HW: tuple[int, int], class2extract: int):
+        """
+        Generate heatmap from YOLO predictions. The heatmap is a 2D gaussian centered at the predicted object's centroid
+        with its width and height as the standard deviation. For each object of the class in the image, a gaussian is
+        generated.
+        :param resolution_HW: Resolution of the heatmap (H, W)
+        :param class2extract: class index to extract from the YOLO predictions
+        """
         self.H, self.W = resolution_HW
         self.class2extract = class2extract
 

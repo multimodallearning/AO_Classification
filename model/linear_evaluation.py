@@ -7,12 +7,19 @@ from model.clip import LightningCLIP
 from model.autoencoder import LightningAutoEncoder
 
 
+# helper to fake a 3 channel image given a single channel image
 class ExpanderRGB(nn.Module):
     def forward(self, x):
         return x.expand(-1, 3, -1, -1)
 
+
 class AEAvgPool(nn.Module):
-    def __init__(self, img_encoder:nn.Module, latent_dim:int):
+    def __init__(self, img_encoder: nn.Module, latent_dim: int):
+        """
+        Spatial average pooling. Collapse spatial dimensions to 1
+        :param img_encoder: Encoder to collapse output of
+        :param latent_dim: number of channels of the encoder output
+        """
         super().__init__()
         self.img_encoder = img_encoder
         self.latent_dim = latent_dim
@@ -25,6 +32,10 @@ class AEAvgPool(nn.Module):
 
 class LinearEvaluation(AOClassifier):
     def __init__(self, type: str = 'CLIP_img'):
+        """
+        Linear evaluation model: Fits a single linear layer to the frozen features of a pretrained model.
+        :param type: Type of model to use as encoder. Options: 'CLIP_img', 'CLIP_txt', 'imagenet', 'AE'
+        """
         super().__init__()
         del self.model
         del self.input_config
@@ -70,7 +81,7 @@ class LinearEvaluation(AOClassifier):
         elif self.hparams.type == 'CLIP_txt':  # text preprocessing
             # tokenize text
             token_emb = self.tokenizer(batch["report"], return_tensors='pt', padding=True, truncation=True,
-                                                    max_length=self.tokenizer.model_max_length).data
+                                       max_length=self.tokenizer.model_max_length).data
             input_ids = token_emb['input_ids'].to(self.device, non_blocking=True)
             attention_mask = token_emb['attention_mask'].to(self.device, non_blocking=True)
 

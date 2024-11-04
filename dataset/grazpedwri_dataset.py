@@ -25,6 +25,13 @@ class GrazPedWriDataset(Dataset):
 
     def __init__(self, mode: str, fold: int = 1, number_training_samples: int | str = 'all',
                  use_yolo_predictions: bool = False):
+        """
+        Dataset for GrazPedWri dataset
+        :param mode: 'train' or 'val'
+        :param fold: fold index (not used in our experiments)
+        :param number_training_samples: number of training samples to use (not used in our experiments)
+        :param use_yolo_predictions: Rather use YOLO predictions than ground truth for fracture location
+        """
         super().__init__()
         # load data meta and other information
         self.df_meta = pd.read_csv('data/dataset_cv_splits.csv', index_col='filestem')
@@ -90,6 +97,14 @@ class GrazPedWriDataset(Dataset):
 class GrazPedWriDataModule(LightningDataModule):
     def __init__(self, fold: int = 1, batch_size: int = 64, number_training_samples: int | str = 'all',
                  affine_params_rot_trans_scale: tuple = (30, 0.1, 0.15), use_data_aug: bool = True):
+        """
+        DataModule for GrazPedWri dataset
+        :param fold: fold index (not used in our experiments)
+        :param batch_size: batch size to use for training and validation
+        :param number_training_samples: number of training samples to use (not used in our experiments)
+        :param affine_params_rot_trans_scale: tuple with parameters for RandomAffine
+        :param use_data_aug: enable data augmentation
+        """
         super().__init__()
         self.n_train = number_training_samples
         self.fold = fold

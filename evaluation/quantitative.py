@@ -1,3 +1,5 @@
+# script iterating ver all predictions and calculating the metrics
+
 from pathlib import Path
 
 import pandas as pd

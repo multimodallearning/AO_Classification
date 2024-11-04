@@ -13,6 +13,12 @@ from torchvision.utils import make_grid
 
 class ResidualDecoder(nn.Module):
     def __init__(self, num_input_channel: int = 512, num_output_channel: int = 1, num_decode_layer: int = 5):
+        """
+        Residual decoder
+        :param num_input_channel: number of input channels (dimensionality of the latent vector)
+        :param num_output_channel: expected number of output channels of the image
+        :param num_decode_layer: number of convolutional layers in the decoder
+        """
         super().__init__()
         self.decoder = nn.ModuleList()
         for i in range(num_decode_layer):
@@ -39,6 +45,12 @@ class ResidualDecoder(nn.Module):
 
 class LightningAutoEncoder(LightningModule):
     def __init__(self, resnet_depth: int = 18, num_decoder_layers: int = 5, use_ssim: bool = False):
+        """
+        Autoencoder model to reconstruct radiographs
+        :param resnet_depth: Encoder depth (18, 34, 50)
+        :param num_decoder_layers: Number of convolutional layers in the decoder
+        :param use_ssim: Use Structural Similarity Index as additional loss to L1
+        """
         super().__init__()
         self.plotting_batch = {'train': torch.zeros(1, 1, 64, 64), 'val': torch.zeros(1, 1, 64, 64)}
         self.use_ssim = use_ssim

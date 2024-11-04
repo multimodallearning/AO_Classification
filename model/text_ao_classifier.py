@@ -7,6 +7,9 @@ from model.ao_classifier import AOClassifier
 
 class TxtAOClassifier(AOClassifier):
     def __init__(self):
+        """
+        Text-only AO classifier. Uses CLIP's pretrained text encoder and a linear classifier.
+        """
         super().__init__()
         del self.model
         del self.input_config

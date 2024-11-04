@@ -1,3 +1,4 @@
+# script to plot the AUROCs for the different models
 from pathlib import Path
 
 import torch
@@ -7,6 +8,8 @@ from torchmetrics import classification
 from dataset.grazpedwri_dataset import GrazPedWriDataset
 
 models2plot = ['image', 'image_frac_loc', 'image_frac_loc_mult_seg_clip']
+labels = ['Img', 'Img + FracLoc', 'Img + FracLoc + Img + BoneSeg + Report']
+assert len(models2plot) == len(labels), 'Number of models and labels must match'
 
 pred_dir = Path('evaluation/predictions')
 gt = torch.load(pred_dir / 'ground_truth.pt')
@@ -30,9 +33,9 @@ for c in range(GrazPedWriDataset.N_CLASSES):
     cat_y_hat = torch.stack([pred_dict[e][:, c] for e in models2plot], dim=1)
 
     roc.update(cat_y_hat, y[:, c].unsqueeze(1).expand(-1, len(models2plot)))
-    fig, axs = roc.plot(score=True, labels=models2plot)
+    fig, axs = roc.plot(score=True, labels=['']*len(models2plot))
     axs.set_title('')
-    plt.legend(fontsize='large')
+    plt.legend(fontsize='xx-large')
 
     fig.savefig(f'/home/ron/Documents/Konferenzen/BVM 2025/ROCs/roc_{GrazPedWriDataset.CLASS_LABELS[c].replace('/', '_')}.pdf',
                 bbox_inches='tight', pad_inches=0)

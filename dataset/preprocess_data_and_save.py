@@ -1,14 +1,15 @@
-import warnings
-
-import pandas as pd
+# script to preprocess the data and save it to a h5 file to speed up the training process
 from pathlib import Path
+
 import h5py
-from dataset.heatmap_extractor import HeatmapExtractor
-from tqdm import tqdm
+import pandas as pd
+import torch
 from PIL import Image
 from torchvision.transforms.functional import to_tensor
-import torch
+from tqdm import tqdm
+
 from dataset.grazpedwri_dataset import GrazPedWriDataset
+from dataset.heatmap_extractor import HeatmapExtractor
 
 save_dir = Path('data/preprocessed_data.h5')
 
